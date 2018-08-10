@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.gradle.dsl
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
 import org.gradle.api.internal.plugins.DslObject
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinWithJavaTarget
 import kotlin.reflect.KClass
@@ -58,6 +59,24 @@ open class KotlinJvmProjectExtension : KotlinSingleJavaTargetExtension() {
 
 open class ExperimentalExtension {
     var coroutines: Coroutines? = null
+    var newInference: NewInferenceState? = null
+}
+
+enum class NewInferenceState {
+    ENABLE,
+    DISABLE;
+
+    companion object {
+        val DEFAULT =
+            if (LanguageFeature.NewInference.defaultState == LanguageFeature.State.ENABLED)
+                NewInferenceState.ENABLE
+            else
+                NewInferenceState.DISABLE
+
+        fun byCompilerArgument(argument: String): NewInferenceState? =
+            NewInferenceState.values().byCompilerArgument(argument)
+    }
+
 }
 
 enum class Coroutines {
@@ -68,6 +87,9 @@ enum class Coroutines {
 
     companion object {
         fun byCompilerArgument(argument: String): Coroutines? =
-            Coroutines.values().firstOrNull { it.name.equals(argument, ignoreCase = true) }
+            Coroutines.values().byCompilerArgument(argument)
     }
 }
+
+private fun <T : Enum<T>> Array<T>.byCompilerArgument(argument: String): T? =
+    firstOrNull { it.name.equals(argument, ignoreCase = true) }

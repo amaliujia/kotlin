@@ -17,14 +17,12 @@ import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs
 import org.jetbrains.kotlin.build.DEFAULT_KOTLIN_SOURCE_FILES_EXTENSIONS
 import org.jetbrains.kotlin.cli.common.ExitCode
-import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
-import org.jetbrains.kotlin.cli.common.arguments.CommonToolArguments
-import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
-import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.*
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.compilerRunner.*
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.daemon.common.MultiModuleICSettings
 import org.jetbrains.kotlin.gradle.dsl.*
 import org.jetbrains.kotlin.gradle.incremental.ChangedFiles
@@ -194,6 +192,18 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments>() : AbstractKo
                 ?: Coroutines.DEFAULT
 
     @get:Internal
+    internal var newInferenceFromGradleProperties: NewInferenceState? = null
+
+    @get:Input
+    internal val newInferenceStr: String
+        get() = newInference.name
+
+    private val newInference: NewInferenceState
+        get() = kotlinExt.experimental.newInference
+            ?: newInferenceFromGradleProperties
+            ?: NewInferenceState.DEFAULT
+
+    @get:Internal
     internal var friendTaskName: String? = null
 
     @get:Internal
@@ -283,7 +293,14 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments>() : AbstractKo
             Coroutines.DEFAULT -> CommonCompilerArguments.DEFAULT
         }
 
+        if (newInference == NewInferenceState.ENABLE) {
+            args.internalArguments += ManualLanguageFeatureSetting(
+                LanguageFeature.NewInference, LanguageFeature.State.ENABLED, "-XXLanguage:+NewInference"
+            )
+        }
+
         logger.kotlinDebug { "args.coroutinesState=${args.coroutinesState}" }
+        logger.kotlinDebug { "args.newInferenceState=${if (newInference == NewInferenceState.ENABLE) "enable" else "disable"}" }
 
         if (project.logger.isDebugEnabled) {
             args.verbose = true
