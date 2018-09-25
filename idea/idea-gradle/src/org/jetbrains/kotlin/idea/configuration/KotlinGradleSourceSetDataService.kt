@@ -275,8 +275,10 @@ fun configureFacetByGradleModule(
         moduleNode.coroutines ?: findKotlinCoroutinesProperty(ideModule.project)
     )
 
+    val enabledNewInference = moduleNode.enabledNewInference ?: findKotlinNewInferenceStateProperty(ideModule.project)
+
     val kotlinFacet = ideModule.getOrCreateFacet(modelsProvider, false, GradleConstants.SYSTEM_ID.id)
-    kotlinFacet.configureFacet(compilerVersion, coroutinesProperty, platform, modelsProvider)
+    kotlinFacet.configureFacet(compilerVersion, coroutinesProperty, enabledNewInference, platform, modelsProvider)
 
     if (sourceSetNode == null) {
         ideModule.compilerArgumentsBySourceSet = moduleNode.compilerArgumentsBySourceSet
@@ -334,4 +336,12 @@ internal fun adjustClasspath(kotlinFacet: KotlinFacet, dependencyClasspath: List
 internal fun findKotlinCoroutinesProperty(project: Project): String {
     return GradlePropertiesFileFacade.forProject(project).readProperty("kotlin.coroutines")
         ?: CoroutineSupport.getCompilerArgument(LanguageFeature.Coroutines.defaultState)
+}
+
+internal fun findKotlinNewInferenceStateProperty(project: Project): Boolean {
+    return GradlePropertiesFileFacade
+        .forProject(project)
+        .readProperty("kotlin.newInference")
+        ?.equals("enable", ignoreCase = true)
+            ?: LanguageFeature.NewInference.defaultState == LanguageFeature.State.ENABLED
 }

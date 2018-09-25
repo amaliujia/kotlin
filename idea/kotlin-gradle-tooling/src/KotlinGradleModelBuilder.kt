@@ -46,6 +46,7 @@ interface KotlinGradleModel : Serializable {
     val hasKotlinPlugin: Boolean
     val compilerArgumentsBySourceSet: CompilerArgumentsBySourceSet
     val coroutines: String?
+    val enabledNewInference: Boolean?
     val platformPluginId: String?
     val implements: List<String>
 }
@@ -54,6 +55,7 @@ class KotlinGradleModelImpl(
         override val hasKotlinPlugin: Boolean,
         override val compilerArgumentsBySourceSet: CompilerArgumentsBySourceSet,
         override val coroutines: String?,
+        override val enabledNewInference: Boolean?,
         override val platformPluginId: String?,
         override val implements: List<String>
 ) : KotlinGradleModel
@@ -129,19 +131,18 @@ class KotlinGradleModelBuilder : AbstractKotlinGradleModelBuilder() {
         return emptyList()
     }
 
-    private fun getCoroutines(project: Project): String? {
-        val kotlinExtension = project.extensions.findByName("kotlin") ?: return null
-        val experimentalExtension = try {
-            kotlinExtension::class.java.getMethod("getExperimental").invoke(kotlinExtension)
-        }
-        catch(e: NoSuchMethodException) {
-            return null
-        }
+    private fun getCoroutines(project: Project): String? =
+        project.getExperimentalFeature("getCoroutines")
 
+    private fun getNewInferenceState(project: Project): Boolean? =
+        project.getExperimentalFeature("getNewInference")?.equals("enable", ignoreCase = true)
+
+    private fun Project.getExperimentalFeature(featureMethod: String): String? {
+        val kotlinExtension = this.extensions.findByName("kotlin") ?: return null
         return try {
-            experimentalExtension::class.java.getMethod("getCoroutines").invoke(experimentalExtension)?.toString()
-        }
-        catch(e: NoSuchMethodException) {
+            val experimentalExtension = kotlinExtension::class.java.getMethod("getExperimental").invoke(kotlinExtension)
+            experimentalExtension::class.java.getMethod(featureMethod).invoke(experimentalExtension)?.toString()
+        } catch (e: NoSuchMethodException) {
             null
         }
     }
@@ -169,6 +170,7 @@ class KotlinGradleModelBuilder : AbstractKotlinGradleModelBuilder() {
                 kotlinPluginId != null || platformPluginId != null,
                 compilerArgumentsBySourceSet,
                 getCoroutines(project),
+                getNewInferenceState(project),
                 platform,
                 implementedProjects.map { it.pathOrName() }
         )

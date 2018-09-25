@@ -2243,6 +2243,46 @@ compileTestKotlin {
         TestCase.assertEquals("1.1", holder.settings.languageVersion)
     }
 
+    @Test
+    fun testNewInferenceDslImport() {
+        createProjectSubFile(
+            "build.gradle", """
+            group 'Again'
+            version '1.0-SNAPSHOT'
+
+            buildscript {
+                repositories {
+                    mavenCentral()
+                    maven {
+                        url 'http://dl.bintray.com/kotlin/kotlin-eap-1.1'
+                    }
+                }
+
+                dependencies {
+                    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.1.0")
+                }
+            }
+
+            apply plugin: 'kotlin'
+
+            dependencies {
+                compile "org.jetbrains.kotlin:kotlin-stdlib:1.1.0"
+            }
+
+            kotlin {
+                experimental {
+                    newInference 'enable'
+                }
+            }
+        """
+        )
+        importProject()
+
+        with(facetSettings) {
+            Assert.assertEquals(true, newInferenceEnabled)
+        }
+    }
+
     private fun checkStableModuleName(projectName: String, expectedName: String, platform: TargetPlatform, isProduction: Boolean) {
         val module = getModule(projectName)
         val moduleInfo = if (isProduction) module.productionSourceInfo() else module.testSourceInfo()

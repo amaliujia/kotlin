@@ -339,6 +339,7 @@ public class ConfigureKotlinTest extends AbstractConfigureKotlinTest {
                     facet,
                     "1.1",
                     LanguageFeature.State.ENABLED,
+                    null,
                     platform,
                     modelsProvider
             );

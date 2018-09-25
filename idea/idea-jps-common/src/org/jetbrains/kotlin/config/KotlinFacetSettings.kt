@@ -20,6 +20,7 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.ManualLanguageFeatureSetting
 import org.jetbrains.kotlin.cli.common.arguments.copyBean
 import org.jetbrains.kotlin.cli.common.arguments.parseCommandLineArguments
 import org.jetbrains.kotlin.platform.IdePlatform
@@ -205,6 +206,23 @@ class KotlinFacetSettings {
                 LanguageFeature.State.ENABLED -> CommonCompilerArguments.ENABLE
                 LanguageFeature.State.ENABLED_WITH_WARNING -> CommonCompilerArguments.WARN
                 LanguageFeature.State.ENABLED_WITH_ERROR, LanguageFeature.State.DISABLED -> CommonCompilerArguments.ERROR
+            }
+        }
+
+    var newInferenceEnabled: Boolean?
+        get() {
+            val arguments = compilerArguments ?: return LanguageFeature.NewInference.defaultState == LanguageFeature.State.ENABLED
+            return arguments.newInference || arguments.internalArguments.any {
+                it is ManualLanguageFeatureSetting &&
+                        it.languageFeature == LanguageFeature.NewInference &&
+                        it.state == LanguageFeature.State.ENABLED
+            }
+        }
+        set(value) {
+            if (value == true) {
+                compilerArguments!!.internalArguments += ManualLanguageFeatureSetting(
+                    LanguageFeature.NewInference, LanguageFeature.State.ENABLED, "-XXLanguage:+NewInference"
+                )
             }
         }
 
