@@ -63,16 +63,16 @@ class AddScriptRuntimeQuickFix(element: KtElement) : AddKotlinLibQuickFix(elemen
     )
 
     companion object : KotlinSingleIntentionActionFactory() {
-        override fun createAction(diagnostic: Diagnostic): KotlinQuickFixAction<KtElement>? {
-            val ktScript = Errors.MISSING_SCRIPT_BASE_CLASS.cast(diagnostic).psiElement as? KtScript ?: return null
-            val templateClassName = ktScript.kotlinScriptDefinition.value.template.qualifiedName ?: return null
 
-            if (templateClassName.startsWith("kotlin.script.templates.standard")) {
-                return diagnostic.createIntentionForFirstParentOfType(::AddScriptRuntimeQuickFix)
-            }
-
-            return null
+        private fun isStandardTemplateMissing(diagnostic: Diagnostic): Boolean {
+            if (diagnostic.factory == Errors.MISSING_SCRIPT_STANDARD_TEMPLATE) return true
+            val ktScript = Errors.MISSING_SCRIPT_BASE_CLASS.cast(diagnostic).psiElement as? KtScript ?: return false
+            val templateClassName = ktScript.kotlinScriptDefinition.value.template.qualifiedName ?: return false
+            return templateClassName.startsWith("kotlin.script.templates.standard")
         }
+
+        override fun createAction(diagnostic: Diagnostic): KotlinQuickFixAction<KtElement>? =
+            if (isStandardTemplateMissing(diagnostic)) diagnostic.createIntentionForFirstParentOfType(::AddScriptRuntimeQuickFix) else null
     }
 }
 
